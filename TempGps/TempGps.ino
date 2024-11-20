@@ -35,29 +35,34 @@ void GPS_test(void) {
         if (GPS.time.second() % 10 == 0) {
           continue;
         }
-
         // temp
         float h = dht.readHumidity();
         float t = dht.readTemperature();
 
-        /* TODO output error string on display
-        if (isnan(h) || isnan(t) || isnan(f)) {
-          Serial.println(F("Failed to read from DHT sensor!"));
-          return;
-        }
-        */
-
-        // output data on display
+        // set base color of display
         st7735.st7735_fill_screen(ST7735_BLACK);
-        String temp_c = "Temp " + (String)t;
-        st7735.st7735_write_str(0, 0, temp_c);
-        String humid = "Hum " + (String)h;
-        st7735.st7735_write_str(0, 20, humid);
+
+        // section for display
+        // st7735.st7735_write_str(leftalign, topalign, argument);
+        // read and write temperature if available
+        String string_t = "Temp n/a";
+        if (!isnan(h)) {
+          String string_t = "Temp " + (String)t;
+        };
+        st7735.st7735_write_str(0, 0, string_t);
+
+        // read and write humidity if available
+        String string_h = "Temp n/a";
+        if (!isnan(h)) {
+          String string_h = "Temp " + (String)h;
+        };
+        st7735.st7735_write_str(0, 0, string_h);
+
+        // read and write gps
         String latitude = "LAT: " + (String)GPS.location.lat();
         st7735.st7735_write_str(0, 40, latitude);
         String longitude = "LON: " + (String)GPS.location.lng();
         st7735.st7735_write_str(0, 60, longitude);
-
 
         delay(5000);
         while (Serial1.read() > 0)
@@ -70,9 +75,10 @@ void GPS_test(void) {
 void setup() {
   // init temp sensor
   dht.begin();
-  // run everything else
-  delay(100);
+  // init display and wait
   st7735.st7735_init();
+  delay(100);
+  // begin running code
   GPS_test();
 }
 
