@@ -14,19 +14,15 @@
 // GPS
 TinyGPSPlus GPS;
 HT_st7735 st7735;
+String lati = "none";
+String longi = "none";
 #define VGNSS_CTRL 3
 // Humid & Temp
 #define DHTPIN 4
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
-
-String lati = "none";
-String longi = "none";
-
-// Humid and Temp
 String string_t = "TMP n/a";
 String string_h = "HUM n/a";
-
 // MQTT
 const char* ssid = "Pixel_3392";
 const char* password = "12345678mq";
@@ -36,17 +32,20 @@ const char* mqtt_topic_dht = "CCL/fishboat";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-
+/*
+TODO
+device does not run if no wifi connection is available
+-> implement display msg and go on
+*/
 
 void GPS_test(void) {
   pinMode(VGNSS_CTRL, OUTPUT);
   digitalWrite(VGNSS_CTRL, HIGH);
   Serial1.begin(115200, SERIAL_8N1, 33, 34);
-  Serial.println("GPS_test");
-  st7735.st7735_fill_screen(ST7735_BLACK);
-  delay(100);
-  st7735.st7735_write_str(0, 0, (String) "Starting...");
 
+
+  st7735.st7735_fill_screen(ST7735_BLACK);  // set base color of display
+  st7735.st7735_write_str(0, 0, (String) "Starting...");
 
   while (1) {
     sensorTempAndHumid();
@@ -63,24 +62,17 @@ void GPS_test(void) {
           continue;
         }
 
-        // set base color of display
         st7735.st7735_fill_screen(ST7735_BLACK);
+        delay(100);
 
-        // section for display
-        // st7735.st7735_write_str(leftalign, topalign, argument);
-        // clear stored data in buffer from sensor
-        while (Serial1.read() > 0)
+        while (Serial1.read() > 0)  // clear stored data in buffer from sensor
           ;
-
 
         // read and write gps
         String latitude = "LAT: " + (String)GPS.location.lat();
         st7735.st7735_write_str(0, 40, latitude);
         String longitude = "LON: " + (String)GPS.location.lng();
         st7735.st7735_write_str(0, 60, longitude);
-
-        // delay(5000);
-        delay(100);
       }
     }
   }
@@ -117,17 +109,14 @@ void connectWiFi() {
 void reconnectWifi() {
   // reconnectWifi to the MQTT broker if disconnected
   while (!client.connected()) {
-    Serial.println("Connecting to MQTT...");
 
-
-    // Generate a random client ID to avoid conflicts
-    String clientId = "ESP32Client-" + String(random(0xffff), HEX);
+    String clientId = "ESP32Client-" + String(random(0xffff), HEX);  // Generate a random client ID to avoid conflicts
 
     if (client.connect(clientId.c_str())) {
-      Serial.println("Connected to MQTT");
+      // connected
     } else {
-      Serial.print("Failed. State=");
-      Serial.println(client.state());
+      // failed
+      // Serial.println(client.state());
       delay(2000);
     }
   }
@@ -143,12 +132,7 @@ void mqttSendData(String t, String h, String lati, String longi) {
     reconnectWifi();
   }
   client.loop();
-  /* add errror handling
-  if (isnan(temperature) || isnan(humidity)) {
-    Serial.println("Failed to read from DHT sensor!");
-    return;
-  }
-  */
+
   // Publish sensor data to MQTT topic
   String payload = "{\"temperature\": " + String(t) + ", \"humidity\": " + String(h) + ", \"Latitude\": " + String(lati) + ", \"Longitude\": " + String(longi) + "}";
   client.publish("CCL/fishboat", payload.c_str());
@@ -156,20 +140,13 @@ void mqttSendData(String t, String h, String lati, String longi) {
 
 
 void setup() {
-  // init temp sensor
-  dht.begin();
-  // init display and wait
-  st7735.st7735_init();
+  dht.begin();           // init temp sensor
+  st7735.st7735_init();  // init display and wait
   delay(100);
-
-  // Set up WiFi
-  connectWiFi();
-  // Set up the MQTT server
-  client.setServer(mqtt_server, mqtt_port);
+  connectWiFi();                             // Set up WiFi
+  client.setServer(mqtt_server, mqtt_port);  // Set up the MQTT server
   client.setKeepAlive(60);
-
-  // begin running code
-  GPS_test();
+  GPS_test();  // begin running code
 }
 
 void loop() {
