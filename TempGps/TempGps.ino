@@ -16,6 +16,10 @@ HT_st7735 st7735;
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
 
+String string_t = "TMP n/a";
+String string_h = "HUM n/a";
+
+
 
 void GPS_test(void) {
   pinMode(VGNSS_CTRL, OUTPUT);
@@ -26,33 +30,17 @@ void GPS_test(void) {
   delay(100);
   st7735.st7735_write_str(0, 0, (String) "Starting...");
 
-  String string_t = "TMP n/a";
-  String string_h = "HUM n/a";
 
   while (1) {
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
-
-    // read and write temperature if available
-    if (!isnan(t) || (String)t != string_t) {
-      string_t = "TMP " + (String)t;
-    };
-    st7735.st7735_write_str(0, 0, string_t);
-
-    // read and write humidity if available
-    if (!isnan(h) || (String)h != string_h) {
-      string_h = "HUM " + (String)h;
-    };
-    st7735.st7735_write_str(0, 20, string_h);
-
-    st7735.st7735_write_str(0, 40, "Syncing GPS");
+    sensorTempAndHumid();
+    st7735.st7735_write_str(0, 40, "Await Geo Sen.");
 
     if (Serial1.available() > 0) {
       if (Serial1.peek() != '\n') {
         GPS.encode(Serial1.read());
       } else {
         Serial1.read();
-        if (GPS.time.second() % 10 == 0) {
+        if (GPS.time.second() == 0 || GPS.time.second() == 30) {
           continue;
         }
 
@@ -76,6 +64,23 @@ void GPS_test(void) {
       }
     }
   }
+}
+
+void sensorTempAndHumid() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  // read and write temperature if available
+  if (!isnan(t) || (String)t != string_t) {
+    string_t = "TMP " + (String)t;
+  };
+  st7735.st7735_write_str(0, 0, string_t);
+
+  // read and write humidity if available
+  if (!isnan(h) || (String)h != string_h) {
+    string_h = "HUM " + (String)h;
+  };
+  st7735.st7735_write_str(0, 20, string_h);
 }
 
 void setup() {
