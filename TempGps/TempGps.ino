@@ -16,17 +16,20 @@ TinyGPSPlus GPS;
 HT_st7735 st7735;
 #define VGNSS_CTRL 3
 // Humid & Temp
-#define DHTPIN 4  // GPIO 4 for DHT22
+#define DHTPIN 4
 #define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
+
+String lati = "none";
+String longi = "none";
 
 // Humid and Temp
 String string_t = "TMP n/a";
 String string_h = "HUM n/a";
 
 // MQTT
-const char* ssid = "VodafoneMobileWiFi-82F409";
-const char* password = "416383635";
+const char* ssid = "Pixel_3392";
+const char* password = "12345678mq";
 const char* mqtt_server = "mqtt.eclipseprojects.io";
 const int mqtt_port = 1883;
 const char* mqtt_topic_dht = "CCL/fishboat";
@@ -48,6 +51,8 @@ void GPS_test(void) {
   while (1) {
     sensorTempAndHumid();
     st7735.st7735_write_str(0, 40, "Await Geo Sen.");
+    mqttSendData(string_t, string_h, lati, longi);
+
 
     if (Serial1.available() > 0) {
       if (Serial1.peek() != '\n') {
@@ -63,6 +68,10 @@ void GPS_test(void) {
 
         // section for display
         // st7735.st7735_write_str(leftalign, topalign, argument);
+        // clear stored data in buffer from sensor
+        while (Serial1.read() > 0)
+          ;
+
 
         // read and write gps
         String latitude = "LAT: " + (String)GPS.location.lat();
@@ -72,9 +81,6 @@ void GPS_test(void) {
 
         // delay(5000);
         delay(100);
-        // clear stored data in buffer from sensor
-        while (Serial1.read() > 0)
-          ;
       }
     }
   }
@@ -127,7 +133,7 @@ void reconnectWifi() {
   }
 }
 
-void mqttSendData(String temperature, String humidity, String lati, String longi) {
+void mqttSendData(String t, String h, String lati, String longi) {
   // Reconnect to WiFi if disconnected
   if (WiFi.status() != WL_CONNECTED) {
     connectWiFi();
@@ -137,25 +143,15 @@ void mqttSendData(String temperature, String humidity, String lati, String longi
     reconnectWifi();
   }
   client.loop();
-
-  // Read sensor data
-  // float temperature = dht.readTemperature();
-  // float humidity = dht.readHumidity();
-  // add lat and lon
-
   /* add errror handling
   if (isnan(temperature) || isnan(humidity)) {
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
   */
-
   // Publish sensor data to MQTT topic
-  String payload = "{\"temperature\": " + String(temperature) + ", \"humidity\": " + String(humidity) + "}";
+  String payload = "{\"temperature\": " + String(t) + ", \"humidity\": " + String(h) + ", \"Latitude\": " + String(lati) + ", \"Longitude\": " + String(longi) + "}";
   client.publish("CCL/fishboat", payload.c_str());
-
-  Serial.println("Data sent to MQTT: " + payload);
-  delay(10000);  // Send data every 5 seconds
 }
 
 
