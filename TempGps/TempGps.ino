@@ -20,13 +20,33 @@ DHT dht(DHTPIN, DHTTYPE);
 void GPS_test(void) {
   pinMode(VGNSS_CTRL, OUTPUT);
   digitalWrite(VGNSS_CTRL, HIGH);
-  Serial1.begin(115200, SERIAL_8N1, 33, 34);  // Temp used 9600
+  Serial1.begin(115200, SERIAL_8N1, 33, 34);
   Serial.println("GPS_test");
   st7735.st7735_fill_screen(ST7735_BLACK);
   delay(100);
   st7735.st7735_write_str(0, 0, (String) "Starting...");
 
+  String string_t = "TMP n/a";
+  String string_h = "HUM n/a";
+
   while (1) {
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+    // read and write temperature if available
+    if (!isnan(t) || (String)t != string_t) {
+      string_t = "TMP " + (String)t;
+    };
+    st7735.st7735_write_str(0, 0, string_t);
+
+    // read and write humidity if available
+    if (!isnan(h) || (String)h != string_h) {
+      string_h = "HUM " + (String)h;
+    };
+    st7735.st7735_write_str(0, 20, string_h);
+
+    st7735.st7735_write_str(0, 40, "Syncing GPS");
+
     if (Serial1.available() > 0) {
       if (Serial1.peek() != '\n') {
         GPS.encode(Serial1.read());
@@ -35,28 +55,12 @@ void GPS_test(void) {
         if (GPS.time.second() % 10 == 0) {
           continue;
         }
-        // temp
-        float h = dht.readHumidity();
-        float t = dht.readTemperature();
 
         // set base color of display
         st7735.st7735_fill_screen(ST7735_BLACK);
 
         // section for display
         // st7735.st7735_write_str(leftalign, topalign, argument);
-        // read and write temperature if available
-        String string_t = "Temp n/a";
-        if (!isnan(h)) {
-          String string_t = "Temp " + (String)t;
-        };
-        st7735.st7735_write_str(0, 0, string_t);
-
-        // read and write humidity if available
-        String string_h = "Temp n/a";
-        if (!isnan(h)) {
-          String string_h = "Temp " + (String)h;
-        };
-        st7735.st7735_write_str(0, 0, string_h);
 
         // read and write gps
         String latitude = "LAT: " + (String)GPS.location.lat();
@@ -64,7 +68,9 @@ void GPS_test(void) {
         String longitude = "LON: " + (String)GPS.location.lng();
         st7735.st7735_write_str(0, 60, longitude);
 
-        delay(5000);
+        // delay(5000);
+        delay(100);
+        // clear stored data in buffer from sensor
         while (Serial1.read() > 0)
           ;
       }
@@ -83,5 +89,5 @@ void setup() {
 }
 
 void loop() {
-  delay(100);
+  delay(1000);
 }
